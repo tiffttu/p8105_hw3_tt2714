@@ -10,31 +10,68 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(p8105.datasets)
 library(dplyr)
+library(ggplot2)
+library(knitr)
 ```
 
-# Problem 1
-Cleaned data to focus on the "Overall Health" topic"
+## Problem 1
+Cleaned data to focus on the "Overall Health" topic
 ```{r}
 overallhealth_brfss_smart2010 = brfss_smart2010 %>% 
   janitor::clean_names() %>%
   subset(., topic == "Overall Health") %>% 
   select(., -class, -topic, -question, -sample_size, -(confidence_limit_low:geo_location)) %>% 
-  mutate(response = as.factor(response))
-```
+  mutate(response = as.factor(response)) %>% 
+  spread(response, data_value)
 
-A few questions answered...
-```{r}
 healthdata2002 = overallhealth_brfss_smart2010 %>% 
   filter(year == 2002) %>% 
-  spread(response, data_value) %>% 
   group_by(locationabbr) %>% 
   mutate(freq = n()) %>% 
   filter(freq == 7)
 ```
-In 2002, `r unique(healthdata2002$locationabbr)` were observed at 7 locations.
-
+In 2002, `r unique(healthdata2002$locationabbr)` were observed at 7 locations. 
 
 ```{r spaghetti plot}
+healthdata = overallhealth_brfss_smart2010 %>% 
+  count(year, locationabbr)
+  
+ggplot(data = healthdata, aes(x = year, y = n, colour = locationabbr)) +
+    geom_line(aes(group = locationabbr)) + ggtitle("Frequency of State Responses to Overall Health 2002-2010")
+```
 
+```{r }
+NYdata = overallhealth_brfss_smart2010 %>% 
+  filter(year ==  2002 | year == 2006 | year == 2010) %>% 
+  group_by(locationabbr) %>% 
+  filter(locationabbr == "NY") %>% 
+  ungroup() %>% 
+  select(year, Excellent) 
+
+NY_mean = c(mean(NYdata$year == 2002), mean(NYdata$year == 2006), mean(NYdata$year == 2010))
+NY_sd = c(sd(NYdata$year == 2002), sd(NYdata$year == 2006), sd(NYdata$year == 2010))
+NYsummarytable = data.frame(NY_mean, NY_sd) 
+row.names(NYsummarytable) = c("2002", "2006", "2010")
+kable(NYsummarytable, caption = "Mean and standard deviation of 'Excellent' Responses in NY")
+```
+
+```{r average across location in state}
+annual_average = overallhealth_brfss_smart2010 %>%
+  select(-locationdesc) %>% 
+  group_by(year, locationabbr) %>% 
+  summarise_all(funs(mean)) %>% 
+  janitor::clean_names() %>% 
+  gather(key = response, value = proportion, -year, -locationabbr) %>% 
+  na.omit()
+
+ggplot(data = annual_average, aes(x = year, y = proportion, colour = locationabbr)) + geom_line() + facet_grid(~ response, space = "free_y") + ggtitle("State-level averages of response to Overall Health")
+```
+
+## Problem 2
+There are `r length(unique(instacart$aisle))` aisles.
+```{r}
+data(instacart)
+
+insta = instacart
 ```
 
