@@ -1,0 +1,40 @@
+---
+title: "P8105_hw3"
+author: "Tiffany Tu"
+date: "10/8/2018"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(p8105.datasets)
+library(dplyr)
+```
+
+# Problem 1
+Cleaned data to focus on the "Overall Health" topic"
+```{r}
+overallhealth_brfss_smart2010 = brfss_smart2010 %>% 
+  janitor::clean_names() %>%
+  subset(., topic == "Overall Health") %>% 
+  select(., -class, -topic, -question, -sample_size, -(confidence_limit_low:geo_location)) %>% 
+  mutate(response = as.factor(response))
+```
+
+A few questions answered...
+```{r}
+healthdata2002 = overallhealth_brfss_smart2010 %>% 
+  filter(year == 2002) %>% 
+  spread(response, data_value) %>% 
+  group_by(locationabbr) %>% 
+  mutate(freq = n()) %>% 
+  filter(freq == 7)
+```
+In 2002, `r unique(healthdata2002$locationabbr)` were observed at 7 locations.
+
+
+```{r spaghetti plot}
+
+```
+
