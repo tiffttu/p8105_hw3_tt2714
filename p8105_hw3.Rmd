@@ -1,5 +1,5 @@
 ---
-title: "P8105_hw3"
+title: "P8105_hw3_tt2714"
 author: "Tiffany Tu"
 date: "10/8/2018"
 output: github_document
@@ -50,6 +50,7 @@ NYdata = overallhealth_brfss_smart2010 %>%
 
 NY_mean = c(mean(NYdata$year == 2002), mean(NYdata$year == 2006), mean(NYdata$year == 2010))
 NY_sd = c(sd(NYdata$year == 2002), sd(NYdata$year == 2006), sd(NYdata$year == 2010))
+
 NYsummarytable = data.frame(NY_mean, NY_sd) 
 row.names(NYsummarytable) = c("2002", "2006", "2010")
 kable(NYsummarytable, caption = "Mean and standard deviation of 'Excellent' Responses in NY")
@@ -64,14 +65,23 @@ annual_average = overallhealth_brfss_smart2010 %>%
   gather(key = response, value = proportion, -year, -locationabbr) %>% 
   na.omit()
 
-ggplot(data = annual_average, aes(x = year, y = proportion, colour = locationabbr)) + geom_line() + facet_grid(~ response, space = "free_y") + ggtitle("State-level averages of response to Overall Health")
+ggplot(data = annual_average, aes(x = year, y = proportion, colour = locationabbr)) + geom_line() + facet_wrap(~ response, ncol = 2) + ggtitle("State-level averages of response to 'Overall Health'")
 ```
 
 ## Problem 2
-There are `r length(unique(instacart$aisle))` aisles.
-```{r}
-data(instacart)
+The original dataset has `r ncol(instacart)` columns and `r nrow(instacart)` rows, containing a lot of repetitive data. We have orders IDs, each with multiple rows on ordered product IDs, the order in which the product was added to the cart, user ID, and more columns on product information such as product aisle and department. 
+   
+For example, in order ID #36, we have `r sum(instacart$order_id == 36)` products ordered under user#`r unique((instacart %>%  filter(order_id == 1))$user_id)`. The order was placed `r unique((instacart %>%  filter(order_id == 36))$days_since_prior_order)` days ago and products are under the following departments: `r unique((instacart %>%  filter(order_id == 36))$department)`. 
 
-insta = instacart
+There are a total of `r length(unique(instacart$aisle))` aisles. Most items are ordered from the `r tail(names(sort(table(instacart$aisle))), 1)` aisle and least ordered from `r head(names(sort(table(instacart$aisle))), 1)`. 
+
+```{r fig.width=10,fig.height=15}
+data(instacart)
+aisle_count = instacart %>% 
+  group_by(aisle, department) %>% 
+  summarise(n = n()) %>% 
+  mutate(split = ifelse(n > 4723, "more than 4723 ordered", "less than 4723 ordered"))
+
+ggplot(aisle_count, aes(x = aisle, y = n, fill = department)) + geom_bar(stat="identity") + labs(title = "Number of Items ordered in each Aisle", y = "count") + theme(axis.text.y = element_text(angle = 20, hjust = 1)) + facet_wrap(~ split, scales = "free",  ncol = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1), axis.text.y = element_text(size = 10), plot.title = element_text(size = 22), legend.text = element_text(size = 13), axis.title.x = element_text(size = 18), axis.title.y = element_text(size = 18), legend.title=element_text(size=18)) + coord_flip()
 ```
 
