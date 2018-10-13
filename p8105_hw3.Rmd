@@ -69,7 +69,7 @@ ggplot(data = annual_average, aes(x = year, y = proportion, colour = locationabb
 ```
 
 ## Problem 2
-The original dataset has `r ncol(instacart)` columns and `r nrow(instacart)` rows, containing a lot of repetitive data. We have orders IDs, each with multiple rows on ordered product IDs, the order in which the product was added to the cart, user ID, and more columns on product information such as product aisle and department. 
+The original dataset has `r ncol(instacart)` columns and `r nrow(instacart)` rows, containing a lot of repetitive data. We have orders IDs, each with multiple rows on ordered product IDs, the order in which the product was added to the cart, user ID, and more columns on product information such as product aisle and department. We also have data on the hour and the day of the week the product was added to order, coded 0-6 indicating Monday through Sunday. 
    
 For example, in order ID #36, we have `r sum(instacart$order_id == 36)` products ordered under user#`r unique((instacart %>%  filter(order_id == 1))$user_id)`. The order was placed `r unique((instacart %>%  filter(order_id == 36))$days_since_prior_order)` days ago and products are under the following departments: `r unique((instacart %>%  filter(order_id == 36))$department)`. 
 
@@ -83,5 +83,35 @@ aisle_count = instacart %>%
   mutate(split = ifelse(n > 4723, "more than 4723 ordered", "less than 4723 ordered"))
 
 ggplot(aisle_count, aes(x = aisle, y = n, fill = department)) + geom_bar(stat="identity") + labs(title = "Number of Items ordered in each Aisle", y = "count") + theme(axis.text.y = element_text(angle = 20, hjust = 1)) + facet_wrap(~ split, scales = "free",  ncol = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1), axis.text.y = element_text(size = 10), plot.title = element_text(size = 22), legend.text = element_text(size = 13), axis.title.x = element_text(size = 18), axis.title.y = element_text(size = 18), legend.title=element_text(size=18)) + coord_flip()
+```
+
+```{r popular items}
+popular_items = instacart %>% 
+  select(product_name, aisle) %>% 
+  filter(aisle == "baking ingredients" | aisle == "dog food care" | aisle == "packaged vegetables fruits") %>% 
+  group_by(product_name, aisle) %>% 
+  summarise(n = n()) %>% 
+  group_by(aisle) %>%  slice(which.max(n)) %>% 
+  select(aisle, product_name)
+
+kable(popular_items, caption = "Most Popular Item in Each Aisle")
+```
+
+```{r}
+order_hour = instacart %>% 
+  select(product_name, order_dow, order_hour_of_day) %>% 
+  filter(product_name == "Pink Lady Apples" | product_name == "Coffee Ice Cream") %>% 
+  group_by(product_name) %>% 
+  mutate(id = row_number()) %>% 
+  spread(order_dow, order_hour_of_day) %>% 
+  select(-id) %>% 
+  summarise_all("mean", na.rm = T) 
+
+kable(order_hour, digits = 2, col.names = c("Product Name", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), caption = "Mean Hour of Day Orders are Placed")
+```
+
+## Problem 3
+```{r}
+data(ny_noaa)
 ```
 
