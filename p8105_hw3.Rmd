@@ -12,6 +12,9 @@ library(p8105.datasets)
 library(dplyr)
 library(ggplot2)
 library(knitr)
+library(hexbin)
+library(gridExtra)
+knitr::opts_chunk$set(fig.path = "images/")
 ```
 
 ## Problem 1
@@ -29,15 +32,17 @@ healthdata2002 = overallhealth_brfss_smart2010 %>%
   group_by(locationabbr) %>% 
   mutate(freq = n()) %>% 
   filter(freq == 7)
-```
-In 2002, `r unique(healthdata2002$locationabbr)` were observed at 7 locations. 
 
+kable(head(healthdata2002))
+```
+   
+In 2002, `r unique(healthdata2002$locationabbr)` were observed at 7 locations. In the Spaghetti plot below, we see that most responses were collected in FL in 2007 followed by NJ in 2006. Because there are too many colors/states, it is a bit difficult to visualize specific locations but it is useful to see the distribution. 
 ```{r spaghetti plot}
 healthdata = overallhealth_brfss_smart2010 %>% 
   count(year, locationabbr)
   
 ggplot(data = healthdata, aes(x = year, y = n, colour = locationabbr)) +
-    geom_line(aes(group = locationabbr)) + ggtitle("Frequency of State Responses to Overall Health 2002-2010")
+    geom_line(aes(group = locationabbr)) + ggtitle("Frequency of State Responses to Overall Health")
 ```
 
 ```{r }
@@ -55,7 +60,9 @@ NYsummarytable = data.frame(NY_mean, NY_sd)
 row.names(NYsummarytable) = c("2002", "2006", "2010")
 kable(NYsummarytable, caption = "Mean and standard deviation of 'Excellent' Responses in NY")
 ```
-
+   
+There is a slow increase in response collected in NY. 
+   
 ```{r average across location in state}
 annual_average = overallhealth_brfss_smart2010 %>%
   select(-locationdesc) %>% 
@@ -65,8 +72,10 @@ annual_average = overallhealth_brfss_smart2010 %>%
   gather(key = response, value = proportion, -year, -locationabbr) %>% 
   na.omit()
 
-ggplot(data = annual_average, aes(x = year, y = proportion, colour = locationabbr)) + geom_line() + facet_wrap(~ response, ncol = 2) + ggtitle("State-level averages of response to 'Overall Health'")
+ggplot(data = annual_average, aes(x = year, y = proportion, colour = locationabbr)) + geom_line(alpha = 0.4) + facet_wrap(~ response, ncol = 2) + ggtitle("State-level averages of response to 'Overall Health'")
 ```
+   
+It is difficult to visualize distinct states, but we can see at an overall state-level that highest responses are from "very good" followed by "good" and least from "poor".
 
 ## Problem 2
 The original dataset has `r ncol(instacart)` columns and `r nrow(instacart)` rows, containing a lot of repetitive data. We have orders IDs, each with multiple rows on ordered product IDs, the order in which the product was added to the cart, user ID, and more columns on product information such as product aisle and department. We also have data on the hour and the day of the week the product was added to order, coded 0-6 indicating Monday through Sunday. 
@@ -75,15 +84,17 @@ For example, in order ID #36, we have `r sum(instacart$order_id == 36)` products
 
 There are a total of `r length(unique(instacart$aisle))` aisles. Most items are ordered from the `r tail(names(sort(table(instacart$aisle))), 1)` aisle and least ordered from `r head(names(sort(table(instacart$aisle))), 1)`. 
 
-```{r fig.width=10,fig.height=15}
+```{r items ordered per aisle, fig.width = 10,fig.height = 15}
 data(instacart)
 aisle_count = instacart %>% 
   group_by(aisle, department) %>% 
   summarise(n = n()) %>% 
   mutate(split = ifelse(n > 4723, " count > 4723", "count < 4723")) 
 
-ggplot(aisle_count, aes(x = aisle, y = n, fill = department)) + geom_bar(stat = "identity") + labs(title = "Number of Items ordered in each aisle", y = "count") + theme(axis.text.y = element_text(angle = 20, hjust = 1)) + facet_wrap(~ split, scales = "free",  ncol = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1), axis.text.y = element_text(size = 10), plot.title = element_text(size = 22), legend.text = element_text(size = 13), axis.title.x = element_text(size = 18), axis.title.y = element_text(size = 18), legend.title = element_text(size = 18)) + coord_flip()
+ggplot(aisle_count, aes(x = aisle, y = n, fill = department)) + geom_bar(stat = "identity") + labs(title = "Items ordered in each aisle", y = "count") + theme(axis.text.y = element_text(angle = 20, hjust = 1)) + facet_wrap(~ split, scales = "free",  ncol = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1), axis.text.y = element_text(size = 10), plot.title = element_text(size = 22), legend.text = element_text(size = 13), axis.title.x = element_text(size = 18), axis.title.y = element_text(size = 18), legend.title = element_text(size = 18)) + coord_flip()
 ```
+    
+Since there are many aisles, I subset the data into greater than or less than the median, `r median(aisle_count$n)`. We can easily see that most items were ordered from fresh vegetables and the fresh fruits section.    
 
 ```{r popular items}
 popular_items = instacart %>% 
@@ -109,7 +120,9 @@ order_hour = instacart %>%
 
 kable(order_hour, digits = 2, col.names = c("Product Name", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), caption = "Mean Hour of Day Orders are Placed")
 ```
-
+   
+Coffee Ice Cream orders are generally placed later in the afternoon whereas Pink Lady Apples are placed earlier during the day, around noon. 
+   
 ## Problem 3
 The original dataset from NOAA National Climatic Data Center has `r ncol(ny_noaa)` columns and `r nrow(ny_noaa)` rows, with a lot of missing entries. The column names are `r colnames(ny_noaa)`. The id gives the weather station ID, and the rest of the columns record snowfall related observations by date. There are a lot of missing data because each weather station may not collect data every day, and might not have collected for all variables.
    
@@ -127,12 +140,26 @@ kable(head(noaa))
 A few of the most commonly observed values for snowfall in inches: `r tail(names(sort(table(noaa$snow))), 5)`. These values are close to zero which is reasonable because the average of overall observed snowfall is `r mean(noaa$snow, na.rm = T)` and the top five observed months are `r tail(names(sort(table(noaa$month))), 5)` - there are more summer months observed than winter months. 
 
 ```{r}
-january_july = noaa %>% 
+january_july_ = noaa %>% 
   filter(month == "01" | month == "07") %>% 
-  select(year, month, tmax) %>% 
-  group_by(month, year) %>% 
-  summarise_all("mean", na.rm = T)
-  
-ggplot(january_july, aes(x = year, y = tmax, group = month, color = month)) + geom_point() + geom_line() + facet_wrap(~ month, scales = "free", nrow = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1, size = 8)) + labs(title = "Average Max Temperature in January and July", y = "tmax (Degrees Celcius)") + scale_color_hue(labels = c("January", "July"))
+  select(id, year, month, tmax) %>% 
+  group_by(month, year, id) %>% 
+  summarise_all("mean", na.rm = T) %>% 
+  drop_na()
+
+ggplot(january_july_, aes(x = year, y = tmax, color = id)) + geom_point(alpha = 0.5) + facet_wrap(~ month, scales = "free", nrow = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1, size = 8), legend.position = "none") + labs(title = "Average Max Temperature in January and July", y = "tmax (Degrees Celcius)")
 ```
+
+There are `r length(unique(january_july_$id))` unique weather stations, so I've eliminated the legend. We can see that in January, the average temperature per station generally ranges from -10 to 10 degrees Celcius. In July, the temperature ranges from 20 to 35 degrees Celcius. Overall, the maximum temperature range is greater in January than in July. In July, we do see four outliers with max temperature less than 20 degrees. There seems to be a pattern between colder January temperatures corresponding to cooler July temperatures.  
+
+```{r problem 3 final figure, fig.width = 10, fig.height = 8}
+plot1 = ggplot(noaa %>% drop_na(), aes(x = tmax, y = tmin)) + geom_hex() + labs(title = "Maximum vs Minimum Temperature per day (degrees Celcius)")
+
+snowfall = noaa %>% 
+  filter(between(snow, 0, 10))
+plot2 = ggplot(snowfall, aes(x = year, y = snow, fill = month)) + geom_bar(stat = "identity", alpha = 0.7)  + labs(title = "Snowfall Distribution (1981-2010)", y = "snowfall (Inches)") + theme(axis.text.x = element_text(angle = 65, hjust = 1, size = 8))
+grid.arrange(plot1, plot2, nrow = 2)
+```
+
+The plotted heatmap of tmax vs tmin shows strong correlation at max temp 25 degrees Celcius and min temp at 18 degrees Celcius. Snowfall distribution shows that there is a slow increase in snowfall from 1981 to 2010, and that it generally falls on the months of January, Feburary, and December. 
 
