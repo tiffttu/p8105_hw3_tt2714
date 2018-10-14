@@ -80,9 +80,9 @@ data(instacart)
 aisle_count = instacart %>% 
   group_by(aisle, department) %>% 
   summarise(n = n()) %>% 
-  mutate(split = ifelse(n > 4723, "more than 4723 ordered", "less than 4723 ordered"))
+  mutate(split = ifelse(n > 4723, " count > 4723", "count < 4723")) 
 
-ggplot(aisle_count, aes(x = aisle, y = n, fill = department)) + geom_bar(stat="identity") + labs(title = "Number of Items ordered in each Aisle", y = "count") + theme(axis.text.y = element_text(angle = 20, hjust = 1)) + facet_wrap(~ split, scales = "free",  ncol = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1), axis.text.y = element_text(size = 10), plot.title = element_text(size = 22), legend.text = element_text(size = 13), axis.title.x = element_text(size = 18), axis.title.y = element_text(size = 18), legend.title=element_text(size=18)) + coord_flip()
+ggplot(aisle_count, aes(x = aisle, y = n, fill = department)) + geom_bar(stat="identity") + labs(title = "Number of Items ordered in each aisle", y = "count") + theme(axis.text.y = element_text(angle = 20, hjust = 1)) + facet_wrap(~ split, scales = "free",  ncol = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1), axis.text.y = element_text(size = 10), plot.title = element_text(size = 22), legend.text = element_text(size = 13), axis.title.x = element_text(size = 18), axis.title.y = element_text(size = 18), legend.title = element_text(size=18)) + coord_flip()
 ```
 
 ```{r popular items}
@@ -111,7 +111,23 @@ kable(order_hour, digits = 2, col.names = c("Product Name", "Monday", "Tuesday",
 ```
 
 ## Problem 3
+The original dataset from NOAA National Climatic Data Center has `r ncol(ny_noaa)` columns and `r nrow(ny_noaa)` rows, with a lot of missing entries. The column names are `r colnames(ny_noaa)`. The id gives the weather station ID, and the rest of the columns record snowfall related observations by date. There are a lot of missing data because each weather station may not collect data every day, and might not have collected for all variables.
+   
+Here I cleaned the data by converting the date column into 3 columns: year, month, day. I switched the units for snow (snowfall) and snwd (snow depth) from mm to inches, prcp (precipitation) from tenths of mm to mm, and tmax/tmin (temperature) from tenths of Celcius to Celcius.
+
 ```{r}
 data(ny_noaa)
+
+noaa = ny_noaa %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-") %>% 
+  mutate(snow = snow*0.039, snwd = snwd*0.039, prcp = prcp*0.1, tmax = as.numeric(tmax)*0.1, tmin = as.numeric(tmin)*0.1) 
+kable(head(noaa))
+```
+   
+A few of the most commonly observed values for snowfall in inches: `r tail(names(sort(table(noaa$snow))), 5)`. These values are close to zero which is reasonable because the average of overall observed snowfall is `r mean(noaa$snow, na.rm = T)` and the top five observed months are `r tail(names(sort(table(noaa$month))), 5)` - there are more summer months observed than winter months. 
+
+```{r}
+january_july = noaa %>% 
+  filter(month == 01 | month == 07)
 ```
 
