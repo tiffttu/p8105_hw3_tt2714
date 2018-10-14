@@ -82,7 +82,7 @@ aisle_count = instacart %>%
   summarise(n = n()) %>% 
   mutate(split = ifelse(n > 4723, " count > 4723", "count < 4723")) 
 
-ggplot(aisle_count, aes(x = aisle, y = n, fill = department)) + geom_bar(stat="identity") + labs(title = "Number of Items ordered in each aisle", y = "count") + theme(axis.text.y = element_text(angle = 20, hjust = 1)) + facet_wrap(~ split, scales = "free",  ncol = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1), axis.text.y = element_text(size = 10), plot.title = element_text(size = 22), legend.text = element_text(size = 13), axis.title.x = element_text(size = 18), axis.title.y = element_text(size = 18), legend.title = element_text(size=18)) + coord_flip()
+ggplot(aisle_count, aes(x = aisle, y = n, fill = department)) + geom_bar(stat = "identity") + labs(title = "Number of Items ordered in each aisle", y = "count") + theme(axis.text.y = element_text(angle = 20, hjust = 1)) + facet_wrap(~ split, scales = "free",  ncol = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1), axis.text.y = element_text(size = 10), plot.title = element_text(size = 22), legend.text = element_text(size = 13), axis.title.x = element_text(size = 18), axis.title.y = element_text(size = 18), legend.title = element_text(size = 18)) + coord_flip()
 ```
 
 ```{r popular items}
@@ -128,6 +128,11 @@ A few of the most commonly observed values for snowfall in inches: `r tail(names
 
 ```{r}
 january_july = noaa %>% 
-  filter(month == 01 | month == 07)
+  filter(month == "01" | month == "07") %>% 
+  select(year, month, tmax) %>% 
+  group_by(month, year) %>% 
+  summarise_all("mean", na.rm = T)
+  
+ggplot(january_july, aes(x = year, y = tmax, group = month, color = month)) + geom_point() + geom_line() + facet_wrap(~ month, scales = "free", nrow = 2) + theme(axis.text.x = element_text(angle = 65, hjust = 1, size = 8)) + labs(title = "Average Max Temperature in January and July", y = "tmax (Degrees Celcius)") + scale_color_hue(labels = c("January", "July"))
 ```
 
